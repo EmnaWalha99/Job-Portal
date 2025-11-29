@@ -141,12 +141,12 @@ def scrape_page(url):
 
 
 # ---------------- MAIN PROGRAM ----------------
-
+csvfilePath ='src/Data/rawData/job_keejobs.csv'
 def scrape_all_pages():
     base_url = "https://www.keejob.com/offres-emploi/?page="
     page = 1
 
-    with open('job_keejobs.csv', 'w', newline='', encoding='utf-8') as csvfile:
+    with open(csvfilePath, 'w', newline='', encoding='utf-8') as csvfile:
         fieldnames = [
             "title", "detail_link",
             "sector", "contract_type", "date_publication",
@@ -167,7 +167,7 @@ def scrape_all_pages():
                 break
 
             for job in job_listings:
-                print(f"  → Scraping details for: {job['title']}")
+                print(f"   Scraping details for: {job['title']}")
                 details = scrape_details(job["detail_link"])
                 job.update(details)
                 writer.writerow(job)

@@ -149,11 +149,11 @@ def scrape_page(url):
 
 
 # ---------------- MAIN PROGRAM ----------------
-
+csvfilePath = 'src/Data/rawData/job_emploisTunisie.csv'
 def scrape_all_pages():
     base_url = "https://www.emploitunisie.com/recherche-jobs-tunisie"
     
-    with open('job_emploisTunisie.csv', 'w', newline='', encoding='utf-8') as csvfile:
+    with open(csvfilePath, 'w', newline='', encoding='utf-8') as csvfile:
         fieldnames = [
             "title", "detail_link","company", "date_publication",
             "sector", "contract_type", "location", "region", "city", "salary", "study_level", "experience", "remote", "description", "skills"
@@ -172,7 +172,7 @@ def scrape_all_pages():
                 break
 
             for job in job_listings:
-                print(f"  → Scraping details for: {job['title']}")
+                print(f"Scraping details for: {job['title']}")
                 details = scrape_details(job["detail_link"])
                 job.update(details)
                 writer.writerow(job)

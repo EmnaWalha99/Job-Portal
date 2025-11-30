@@ -6,6 +6,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
+from datetime import datetime
 
 # try to force stdout to utf-8 so prints with unicode don't raise on Windows
 if hasattr(sys.stdout, "reconfigure"):
@@ -32,6 +33,7 @@ RAW_COLUMNS = [
     "posted_relative",
     "raw_content",
     "detail_link",
+    "source",
     "scraped_at"
 ]
 
@@ -57,7 +59,9 @@ def save_to_csv(job):
             writer.writeheader()
         row = {k: job.get(k, "") for k in RAW_COLUMNS}
         if not row.get("scraped_at"):
-            row["scraped_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            row["scraped_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if not row.get("source"):
+            row["source"] = "optioncarriere"
         writer.writerow(row)
     print(f"[save_to_csv] appended title='{row.get('title','')}'")
 
@@ -99,7 +103,8 @@ def scrape_detail_page(url):
         except:
             data["raw_content"] = ""
 
-        data["scraped_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        data["source"] = "optioncarriere"
+        data["scraped_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # safe print (stdout reconfigured to utf-8 above)
         print("[scrape_detail_page] extracted:", data.get("title", "")[:100])

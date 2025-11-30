@@ -4,6 +4,7 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import time
 import csv
+from datetime import datetime
 from selenium.common.exceptions import NoSuchElementException
 
 options = webdriver.ChromeOptions()
@@ -17,9 +18,7 @@ driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), opti
 BASE_URL = "https://www.emploitunisie.com"
 
 
-
-
-# ---------------- SCRAPE DETAILS PAGE ----------------
+# ---------------- COOKIE HANDLER ----------------
 
 def deny_cookies():
     try:
@@ -33,7 +32,9 @@ def deny_cookies():
     except:
         pass
 
-#--------------Details scraping function ----------------
+
+# ---------------- SCRAPE DETAILS PAGE ----------------
+
 def scrape_details(detail_url):
     driver.get(detail_url)
     time.sleep(2)
@@ -73,35 +74,35 @@ def scrape_details(detail_url):
         for item in criteria_items:
             text = item.text.lower()
 
-            # ► Sector
+            # Sector
             if "secteur d´activité" in text or "secteur d'activité" in text:
                 details["sector"] = item.find_element(By.TAG_NAME, "span").text.strip()
 
-            # ► Contract type
+            # Contract type
             if "type de contrat" in text:
                 details["contract_type"] = item.find_element(By.TAG_NAME, "span").text.strip()
 
-            # ► Region
+            # Region
             if text.startswith("région"):
                 details["region"] = item.find_element(By.TAG_NAME, "span").text.strip()
 
-            # ► City
+            # City
             if text.startswith("ville"):
                 details["city"] = item.find_element(By.TAG_NAME, "span").text.strip()
 
-            # ► Experience
+            # Experience
             if "niveau d'expérience" in text:
                 details["experience"] = item.find_element(By.TAG_NAME, "span").text.strip()
 
-            # ► Study level
+            # Study level
             if "niveau d'études" in text:
                 details["study_level"] = item.find_element(By.TAG_NAME, "span").text.strip()
 
-            # ► Remote work
+            # Remote work
             if "travail à distance" in text:
                 details["remote"] = item.find_element(By.TAG_NAME, "span").text.strip()
 
-            # ► Salary (not always present)
+            # Salary (not always present)
             if "salaire" in text:
                 details["salary"] = item.find_element(By.TAG_NAME, "span").text.strip()
 
@@ -117,11 +118,11 @@ def scrape_details(detail_url):
 
     return details
 
+
 # ---------------- SCRAPE LIST PAGE ----------------
 
 def scrape_page(url):
     driver.get(url)
-    
     
     deny_cookies()
     job_listings = []
@@ -134,13 +135,14 @@ def scrape_page(url):
             title_el = job.find_element(By.CSS_SELECTOR, "div.card-job-detail > h3 > a")
             title = title_el.text.strip()
             detail_link = title_el.get_attribute("href")
-            company=job.find_element(By.CSS_SELECTOR, ".card-job-company.company-name").text.strip()
-            time=job.find_element(By.CSS_SELECTOR, "div.card-job-detail > time").text.strip()
+            company = job.find_element(By.CSS_SELECTOR, ".card-job-company.company-name").text.strip()
+            time_posted = job.find_element(By.CSS_SELECTOR, "div.card-job-detail > time").text.strip()
+            
             job_listings.append({
                 "title": title,
                 "detail_link": detail_link,
                 "company": company,
-                "date_publication": time
+                "date_publication": time_posted
             })
         except:
             pass
@@ -148,22 +150,26 @@ def scrape_page(url):
     return job_listings
 
 
-# ---------------- MAIN PROGRAM ----------------
 csvfilePath = 'src/Data/rawData/job_emploisTunisie.csv'
+
 def scrape_all_pages():
     base_url = "https://www.emploitunisie.com/recherche-jobs-tunisie"
     
     with open(csvfilePath, 'w', newline='', encoding='utf-8') as csvfile:
+        #source et scraped_at dans les fieldnames
         fieldnames = [
-            "title", "detail_link","company", "date_publication",
-            "sector", "contract_type", "location", "region", "city", "salary", "study_level", "experience", "remote", "description", "skills"
+            "title", "detail_link", "company", "date_publication",
+            "sector", "contract_type", "location", "region", "city", 
+            "salary", "study_level", "experience", "remote", 
+            "description", "skills",
+            "source", "scraped_at"
         ]
 
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
-        page =1
-        while page<=1 :
-            
+        page = 1
+        
+        while page <= 1:
             print(f"Scraping page {page}...")
             job_listings = scrape_page(base_url)
 
@@ -175,12 +181,15 @@ def scrape_all_pages():
                 print(f"Scraping details for: {job['title']}")
                 details = scrape_details(job["detail_link"])
                 job.update(details)
+                
+                # source et scraped_at avant d'écrire
+                job["source"] = "emploitunisie"
+                job["scraped_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
                 writer.writerow(job)
 
-            
             page += 1
             base_url = base_url + f"?page={page-1}"
-            
 
 scrape_all_pages()
 driver.quit()

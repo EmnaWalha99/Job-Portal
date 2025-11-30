@@ -5,6 +5,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 import time
 import csv
 from selenium.common.exceptions import NoSuchElementException
+from datetime import datetime
 
 options = webdriver.ChromeOptions()
 options.add_argument("--disable-blink-features=AutomationControlled")
@@ -151,7 +152,8 @@ def scrape_all_pages():
             "title", "detail_link",
             "sector", "contract_type", "date_publication",
             "location", "salary", "study_level",
-            "experience", "availability", "description"
+            "experience", "availability", "description",
+            "source" ,"scraped_at"
         ]
 
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -170,6 +172,10 @@ def scrape_all_pages():
                 print(f"   Scraping details for: {job['title']}")
                 details = scrape_details(job["detail_link"])
                 job.update(details)
+                
+                # on ajoute source et scraped_at timestamp
+                job["source"] ="keejob"
+                job["scraped_at"]=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 writer.writerow(job)
 
             

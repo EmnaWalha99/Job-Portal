@@ -3,7 +3,7 @@ import unicodedata
 import re
 import os
 from datetime import datetime, timedelta
-
+import csv
 # UTILITY FUNCTIONS
 
 def clean_text(text):
@@ -293,9 +293,8 @@ def map_optioncarriere_to_standard(df_raw):
     
     return df
 
-# ============================================================================
+
 # STANDARD COLUMNS
-# ============================================================================
 
 STANDARD_COLUMNS = [
     "title", "detail_link", "company", "date_publication",
@@ -333,7 +332,14 @@ def clean_optioncarriere_csv(input_path, output_path):
 
     # Load raw data
     try:
-        df_raw = pd.read_csv(input_path, encoding='utf-8-sig')
+        df_raw = pd.read_csv(input_path,
+            encoding='utf-8-sig',
+            engine='python',       # plus permissif
+            sep=',',
+            quotechar='"',
+            escapechar='\\',
+            on_bad_lines='warn'    # 'warn' ou 'skip' pour ignorer lignes malformées
+        )
         print(f"Fichier brut chargé : {len(df_raw)} lignes")
     except FileNotFoundError:
         print(f"Fichier introuvable : {input_path}")

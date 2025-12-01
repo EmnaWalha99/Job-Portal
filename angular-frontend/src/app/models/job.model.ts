@@ -5,7 +5,7 @@ export interface Job {
   title?: string;
   detail_link?: string;
   company?: string;
-  date_publication?: string;
+  date_publication?: Date;
   sector?: string;
   contract_type?: string;
   study_level?: string;
@@ -18,7 +18,7 @@ export interface Job {
   salary_max?: number;
   description?: string;
   skills?: string;
-  scraped_at?: string; // ISO string
+  scraped_at?: Date;
 }
 
 // Utilitaire pour transformer les skills string → array

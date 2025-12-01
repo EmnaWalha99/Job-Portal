@@ -14,7 +14,7 @@ import { SearchService } from '../../services/search.service';
 
       <div class="job-grid">
         @for (job of filteredJobs(); track $index) {
-        <app-job-card class ="col-4"
+        <app-job-card
           [job]="job"
         />
         }

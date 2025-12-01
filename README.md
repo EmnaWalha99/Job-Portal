@@ -1,3 +1,23 @@
+# Project Overview 🌍  
+This project is a **Tunisian job portal** that aggregates offers from several local job websites. It saves time for job seekers by centralizing fragmented information into a single, consistent interface, while preserving trust by linking each result to the original source.
+
+## Core idea of the job portal  
+The application targets Tunisians who currently consult many job websites separately.  
+- It **scrapes job offers** from multiple Tunisian platforms (EmploiTunisie, Keejob, Optioncarriere).  
+- It **standardizes and stores** all opportunities in a unified database.  
+- The Angular frontend presents the data with a **simple, fast search** and filters.  
+- For **credibility and transparency**, each displayed offer includes a direct link to the original posting on the source site.
+
+## Data scraping, cleaning, and data warehouse pipeline ⚙️  
+The backend behaves like a small **data warehouse** that continuously ingests heterogeneous job data.  
+- **Scrapers (Selenium)** extract raw offers and metadata from each website and write them to CSV files.  
+- **Cleaning scripts (Pandas)** normalize text, dates, locations, salaries, and skills into a **standard schema** shared by all sources.  
+- **SQLAlchemy ORM** maps this schema to a **PostgreSQL `jobs` table**, ensuring type safety and easier queries from FastAPI.  
+- An **async pipeline** (`main_pipeline.py`) orchestrates scrapers, cleaners, and the loader in **parallel** using asyncio and subprocesses, so different sites are processed concurrently, reducing total latency.  
+- Finally, the **FastAPI** server exposes a consistent `/jobs` API, consumed by the Angular frontend via `JobService`, providing a smooth, reactive user experience over a consolidated and cleaned dataset.
+
+---
+
 # Angular Frontend Components
 
 ## FooterComponent  

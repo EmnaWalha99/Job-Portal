@@ -1,15 +1,16 @@
 import os
 import uuid
 import pandas as pd
+from datetime import datetime
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
-from db.db_session import engine
-from db.models import Job
+from src.db.db_session import engine
+from src.db.models import Job
 
 # Initialize session factory
 Session = sessionmaker(bind=engine)
 
-# # List of cleaned CSV files
+# List of cleaned CSV files
 csv_files = [
     "src/Data/cleanedData/jobs_optioncarriere_cleaned.csv",
     "src/Data/cleanedData/job_emploisTunisie_cleaned.csv",
@@ -18,6 +19,24 @@ csv_files = [
 
 def safe_str(x):
     return "" if pd.isna(x) else str(x)
+
+def parse_date(date_str):
+    """Parse a YYYY-MM-DD string to a Python date or return None for empty/invalid strings."""
+    if not date_str or str(date_str).strip() == "":
+        return None
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+def parse_datetime(datetime_str):
+    """Parse a YYYY-MM-DD HH:MM:SS string to a Python datetime or return None."""
+    if not datetime_str or str(datetime_str).strip() == "":
+        return None
+    try:
+        return datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return None
 
 def make_job_id_from_row(row):
     # Prefer existing job_id column when present and non-empty
@@ -30,7 +49,7 @@ def make_job_id_from_row(row):
         safe_str(row.get("company", "")).strip(),
         safe_str(row.get("date_publication", "")).strip()
     ])
-    # If key is empty, still generate a unique id from row index + random uuid to avoid empty ids
+    # If key is empty, still generate a unique id from random uuid
     if not key.strip():
         return f"uid-{uuid.uuid4().hex}"
     return uuid.uuid5(uuid.NAMESPACE_URL, key).hex
@@ -40,13 +59,11 @@ def to_nullable_number(x):
         v = pd.to_numeric(x, errors="coerce")
         if pd.isna(v):
             return None
-        
         if float(v).is_integer():
             return int(v)
         return float(v)
     except Exception:
         return None
-
 
 def load_csv_to_db(file_path, session):
     if not os.path.exists(file_path):
@@ -72,7 +89,7 @@ def load_csv_to_db(file_path, session):
             title=safe_str(row.get('title', '')),
             detail_link=safe_str(row.get('detail_link', '')),
             company=safe_str(row.get('company', '')),
-            date_publication=safe_str(row.get('date_publication', '')),
+            date_publication=parse_date(row.get('date_publication', '')),
             sector=safe_str(row.get('sector', '')),
             contract_type=safe_str(row.get('contract_type', '')),
             study_level=safe_str(row.get('study_level', '')),
@@ -85,7 +102,7 @@ def load_csv_to_db(file_path, session):
             salary_max=to_nullable_number(row.get('salary_max', None)),
             description=safe_str(row.get('description', '')),
             skills=safe_str(row.get('skills', '')),
-            scraped_at=safe_str(row.get('scraped_at', None))
+            scraped_at=parse_datetime(row.get('scraped_at', None))
         )
 
         session.add(job)

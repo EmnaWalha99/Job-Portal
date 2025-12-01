@@ -1,5 +1,7 @@
 # server.py
 from fastapi import FastAPI, Query
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from pydantic import BaseModel
 from sqlalchemy.orm import sessionmaker
@@ -13,10 +15,18 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Configuration CORS pour Angular
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:4200"],#URL angular
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 SessionLocal = sessionmaker(bind=engine)
 
 
-# Pydantic model 100% compatible avec le frontend Angular
 class JobOut(BaseModel):
     id: int
     job_id: str
@@ -33,14 +43,14 @@ class JobOut(BaseModel):
     location: Optional[str] = None
     region: Optional[str] = None
     city: Optional[str] = None
-    salary_min: Optional[int] = None      # ← int ou null
-    salary_max: Optional[int] = None      # ← int ou null
+    salary_min: Optional[int] = None
+    salary_max: Optional[int] = None
     description: Optional[str] = None
-    skills: Optional[str] = None          # ← string séparée par virgules
+    skills: Optional[str] = None
     scraped_at: Optional[str] = None
 
     class Config:
-        from_attributes = True  # Remplace orm_mode (obsolète en Pydantic v2)
+        from_attributes = True
 
 
 @app.get("/jobs", response_model=List[JobOut])
@@ -73,14 +83,43 @@ def get_jobs(
         total = query.count()
         jobs = query.offset(offset).limit(limit).all()
 
-        # Ajout d'un header utile pour la pagination
-        response_headers = {
-            "X-Total-Count": str(total),
-            "X-Has-More": str(offset + limit < total)
-        }
+        # Conversion en dictionnaires pour la sérialisation
+        jobs_data = []
+        for job in jobs:
+            job_dict = {
+                "id": job.id,
+                "job_id": job.job_id,
+                "source": job.source,
+                "title": job.title,
+                "detail_link": job.detail_link,
+                "company": job.company,
+                "date_publication": job.date_publication.isoformat() if job.date_publication else None,
+                "sector": job.sector,
+                "contract_type": job.contract_type,
+                "study_level": job.study_level,
+                "experience": job.experience,
+                "availability": job.availability,
+                "location": job.location,
+                "region": job.region,
+                "city": job.city,
+                "salary_min": job.salary_min,
+                "salary_max": job.salary_max,
+                "description": job.description,
+                "skills": job.skills,
+                "scraped_at": job.scraped_at.isoformat() if job.scraped_at else None
+            }
+            jobs_data.append(job_dict)
 
-        return JSONResponse(content=[job.__dict__ for job in jobs], headers=response_headers)
+        print(f"[DEBUG] Returning {len(jobs_data)} jobs out of {total} total")  # Debug
+        
+        return jobs_data
 
+    except Exception as e:
+        print(f"[ERROR] {str(e)}")  # Debug
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
     finally:
         session.close()
 
@@ -89,5 +128,21 @@ def get_jobs(
 @app.get("/")
 def root():
     return {"message": "Job Aggregator API est en ligne !", "docs": "/docs"}
+
+
+@app.get("/health")
+def health():
+    session = SessionLocal()
+    try:
+        count = session.query(Job).count()
+        return {"status": "ok", "jobs_count": count}
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": str(e)}
+        )
+    finally:
+        session.close()
+
 # to run the server :
 # uvicorn server:app --reload
